@@ -87,3 +87,23 @@ def test_successful_login_clears_previous_failed_attempts():
     result = auth.authenticate("alice", "Alice123!Secure")
     assert result["success"] is True
     assert "alice" not in auth.attempts
+
+
+def test_password_hash_uses_unique_salt():
+    password = "SharedPassword123!"
+
+    assert auth.register_user("charlie", password) is True
+    assert auth.register_user("david", password) is True
+
+    assert auth.users["charlie"] != auth.users["david"]
+
+
+def test_account_lockout_is_isolated_per_user():
+    for _ in range(auth.MAX_ATTEMPTS):
+        auth.authenticate("alice", "WrongPassword123!")
+
+    assert "alice" in auth.blocked_until
+
+    bob_result = auth.authenticate("bob", "Bob123456!Secure")
+
+    assert bob_result["success"] is True
